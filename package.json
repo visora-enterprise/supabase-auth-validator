@@ -1,7 +1,7 @@
 {
   "name": "@visora/supabase-auth-validator",
   "version": "1.0.0",
-  "description": "Centralized Supabase (Google OAuth) JWT validation core for all company backend apps. Framework-agnostic — build the middleware for whatever framework you use on top of one function.",
+  "description": "Centralized Supabase (Google OAuth) JWT validation core for all company backend apps.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
