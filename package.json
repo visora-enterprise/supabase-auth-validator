@@ -1,0 +1,29 @@
+{
+  "name": "@visora/supabase-auth-validator",
+  "version": "1.0.0",
+  "description": "Centralized Supabase (Google OAuth) JWT validation core for all company backend apps. Framework-agnostic — build the middleware for whatever framework you use on top of one function.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "bun build ./src/index.ts --outdir ./dist --target node && bunx tsc --emitDeclarationOnly",
+    "prepare": "bun run build"
+  },
+  "keywords": [
+    "supabase",
+    "auth",
+    "jwt",
+    "google-oauth"
+  ],
+  "private": true,
+  "dependencies": {
+    "jose": "^5.9.6"
+  },
+  "author": {
+    "name": "Uditha Vithanage",
+    "email": "udithavithanage358@gmail.com",
+    "url": "https://github.com/udithavithanage"
+  }
+}

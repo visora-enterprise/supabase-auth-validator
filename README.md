@@ -8,22 +8,7 @@ middleware shape its own framework wants, in a few lines.
 It does **not** touch the frontend — it only validates the access token
 your frontend already sends in the `Authorization: Bearer <token>` header.
 
----
-
-## 1. Publish it to your company's private Git repo
-
-```bash
-# inside this folder
-git init
-git add .
-git commit -m "Initial version"
-git remote add origin git@github.com:visora/supabase-auth-validator.git
-git push -u origin main
-git tag v1.0.0
-git push --tags
-```
-
-## 2. Install it in any app
+## 1. Install it in any app
 
 ```bash
 npm install git+ssh://git@github.com/visora/supabase-auth-validator.git#v1.0.0
@@ -31,7 +16,7 @@ npm install git+ssh://git@github.com/visora/supabase-auth-validator.git#v1.0.0
 
 `npm install` builds `dist/` automatically via the `prepare` script.
 
-## 3. Configure per app
+## 2. Configure per app
 
 ```ts
 // auth.ts in each app
@@ -39,8 +24,26 @@ import { createSupabaseAuth } from "@visora/supabase-auth-validator";
 
 export const auth = createSupabaseAuth({
   supabaseUrl: process.env.SUPABASE_URL!, // https://xxxxx.supabase.co
-  jwtSecret: process.env.SUPABASE_JWT_SECRET, // optional, see below
-  allowedProviders: ["google"], // only accept Google-login tokens
+  jwtSecret: process.env.SUPABASE_JWT_SECRET, // optional
+  allowedProviders: ["google"], // optional
+});
+```
+
+### Advanced Configuration Options
+
+If you need to customize the verification process, you can provide these additional options in `createSupabaseAuth`:
+
+```ts
+export const auth = createSupabaseAuth({
+  supabaseUrl: process.env.SUPABASE_URL!,
+  // jwtSecret: process.env.SUPABASE_JWT_SECRET,
+  // allowedProviders: ["google"],
+
+  // Advanced options:
+  audience: "authenticated", // Defaults to 'authenticated'
+  issuer: "https://your-project.supabase.co/auth/v1", // Defaults to `${supabaseUrl}/auth/v1`
+  clockToleranceSec: 5, // Allowed clock skew in seconds. Defaults to 5.
+  cacheJWKS: true, // Set false to disable JWKS caching (only when jwtSecret is not set). Defaults to true.
 });
 ```
 
