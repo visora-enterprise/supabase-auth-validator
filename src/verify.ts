@@ -42,6 +42,7 @@ export function createVerifier(config: SupabaseAuthConfig): VerifyFn {
           issuer,
           audience,
           clockTolerance,
+          algorithms: ["HS256"],
         });
         payload = result.payload;
       } else {
@@ -49,6 +50,7 @@ export function createVerifier(config: SupabaseAuthConfig): VerifyFn {
           issuer,
           audience,
           clockTolerance,
+          algorithms: ["RS256"],
         });
         payload = result.payload;
       }

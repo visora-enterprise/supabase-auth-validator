@@ -6,7 +6,7 @@
 export function extractBearerToken(header?: string | string[] | null): string {
   const value = Array.isArray(header) ? header[0] : header;
   if (!value) return '';
-  const [scheme, token] = value.split(' ');
+  const [scheme, token] = value.trim().split(/\s+/);
   if (!token || scheme?.toLowerCase() !== 'bearer') return '';
   return token;
 }
