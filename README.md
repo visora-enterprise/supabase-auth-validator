@@ -18,32 +18,45 @@ npm install git+ssh://git@github.com/visora-enterprise/supabase-auth-validator.g
 
 ## 2. Configure per app
 
+### TypeScript
+
 ```ts
-// auth.ts in each app
 import { createSupabaseAuth } from "@visora/supabase-auth-validator";
+import type { SupabaseAuthConfig } from "@visora/supabase-auth-validator";
+
+const config: SupabaseAuthConfig = {
+  supabaseUrl: process.env.SUPABASE_URL!,
+  jwtSecret: process.env.SUPABASE_JWT_SECRET,
+  allowedProviders: ["google"],
+};
+
+export const auth = createSupabaseAuth(config);
+```
+
+### JavaScript
+
+```js
+const { createSupabaseAuth } = require("@visora/supabase-auth-validator");
 
 export const auth = createSupabaseAuth({
-  supabaseUrl: process.env.SUPABASE_URL!, // https://xxxxx.supabase.co
-  jwtSecret: process.env.SUPABASE_JWT_SECRET, // optional
-  allowedProviders: ["google"], // optional
+  supabaseUrl: process.env.SUPABASE_URL,
+  jwtSecret: process.env.SUPABASE_JWT_SECRET,
+  allowedProviders: ["google"],
 });
 ```
 
-### Advanced Configuration Options
+## 3. Advanced Configuration Options
 
 If you need to customize the verification process, you can provide these additional options in `createSupabaseAuth`:
 
 ```ts
+// Example in TypeScript
 export const auth = createSupabaseAuth({
   supabaseUrl: process.env.SUPABASE_URL!,
-  // jwtSecret: process.env.SUPABASE_JWT_SECRET,
-  // allowedProviders: ["google"],
-
-  // Advanced options:
-  audience: "authenticated", // Defaults to 'authenticated'
-  issuer: "https://your-project.supabase.co/auth/v1", // Defaults to `${supabaseUrl}/auth/v1`
-  clockToleranceSec: 5, // Allowed clock skew in seconds. Defaults to 5.
-  cacheJWKS: true, // Set false to disable JWKS caching (only when jwtSecret is not set). Defaults to true.
+  audience: "authenticated",
+  issuer: "https://your-project.supabase.co/auth/v1",
+  clockToleranceSec: 5,
+  cacheJWKS: true,
 });
 ```
 
@@ -66,34 +79,35 @@ auth.requireRole(user, ["admin"]); // -> void, throws AuthError if role doesn't 
 auth.extractBearerToken(headerValue); // -> string ('' if missing/malformed)
 ```
 
-`authenticate()` is the one you'll use almost everywhere — give it the
-`Authorization` header value in whatever shape your framework hands it to
-you (string, string[], or null/undefined), get the verified user back:
-
-```ts
-try {
-  const user = await auth.authenticate(authorizationHeader);
-  // user.id, user.email, user.appMetadata.role, user.provider, ...
-} catch (err) {
-  if (err instanceof AuthError) {
-    // err.code: 'NO_TOKEN' | 'INVALID_TOKEN' | 'FORBIDDEN' | 'PROVIDER_NOT_ALLOWED'
-    // err.statusCode: 401 or 403
-  }
-}
-```
-
 ## 5. Wiring it into your own framework
-
-Since there's no per-framework code in the package, you write a small
-middleware/guard once per app using `authenticate()`. It's the same
-handful of lines everywhere — only the request/response shape changes.
 
 ### Express
 
+#### TypeScript
 ```ts
+import { Request, Response, NextFunction } from "express";
 import { auth, AuthError } from "./auth";
 
 function requireAuth(roles?: string[]) {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = await auth.authenticate(req.headers["authorization"]);
+      if (roles) auth.requireRole(user, roles);
+      (req as any).user = user;
+      next();
+    } catch (err) {
+      const e = err instanceof AuthError ? err : new AuthError("Unauthorized", "UNAUTHORIZED");
+      res.status(e.statusCode).json({ error: e.code, message: e.message });
+    }
+  };
+}
+```
+
+#### JavaScript
+```js
+const { auth, AuthError } = require("./auth");
+
+function requireAuth(roles) {
   return async (req, res, next) => {
     try {
       const user = await auth.authenticate(req.headers["authorization"]);
@@ -101,55 +115,56 @@ function requireAuth(roles?: string[]) {
       req.user = user;
       next();
     } catch (err) {
-      const e =
-        err instanceof AuthError
-          ? err
-          : new AuthError("Unauthorized", "UNAUTHORIZED");
+      const e = err instanceof AuthError ? err : new AuthError("Unauthorized", "UNAUTHORIZED");
       res.status(e.statusCode).json({ error: e.code, message: e.message });
     }
   };
 }
-
-app.get("/me", requireAuth(), (req, res) => res.json(req.user));
-app.post("/admin", requireAuth(["admin"]), (req, res) =>
-  res.json({ ok: true }),
-);
 ```
 
 ### Fastify
 
+#### TypeScript
 ```ts
+import { FastifyRequest, FastifyReply } from "fastify";
 import { auth, AuthError } from "./auth";
 
 function requireAuth(roles?: string[]) {
+  return async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const user = await auth.authenticate(request.headers["authorization"]);
+      if (roles) auth.requireRole(user, roles);
+      (request as any).user = user;
+    } catch (err) {
+      const e = err instanceof AuthError ? err : new AuthError("Unauthorized", "UNAUTHORIZED");
+      reply.code(e.statusCode).send({ error: e.code, message: e.message });
+    }
+  };
+}
+```
+
+#### JavaScript
+```js
+const { auth, AuthError } = require("./auth");
+
+function requireAuth(roles) {
   return async (request, reply) => {
     try {
       const user = await auth.authenticate(request.headers["authorization"]);
       if (roles) auth.requireRole(user, roles);
       request.user = user;
     } catch (err) {
-      const e =
-        err instanceof AuthError
-          ? err
-          : new AuthError("Unauthorized", "UNAUTHORIZED");
+      const e = err instanceof AuthError ? err : new AuthError("Unauthorized", "UNAUTHORIZED");
       reply.code(e.statusCode).send({ error: e.code, message: e.message });
     }
   };
 }
-
-app.get("/me", { preHandler: requireAuth() }, async (request) => request.user);
 ```
 
-### NestJS
+### NestJS (TypeScript only)
 
 ```ts
-import {
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-  UnauthorizedException,
-  ForbiddenException,
-} from "@nestjs/common";
+import { CanActivate, ExecutionContext, Injectable, UnauthorizedException, ForbiddenException } from "@nestjs/common";
 import { auth, AuthError } from "./auth";
 
 @Injectable()
@@ -160,20 +175,16 @@ export class AuthGuard implements CanActivate {
       request.user = await auth.authenticate(request.headers["authorization"]);
       return true;
     } catch (err) {
-      const e =
-        err instanceof AuthError
-          ? err
-          : new AuthError("Unauthorized", "UNAUTHORIZED");
-      throw e.statusCode === 403
-        ? new ForbiddenException(e.message)
-        : new UnauthorizedException(e.message);
+      const e = err instanceof AuthError ? err : new AuthError("Unauthorized", "UNAUTHORIZED");
+      throw e.statusCode === 403 ? new ForbiddenException(e.message) : new UnauthorizedException(e.message);
     }
   }
 }
 ```
 
-### Next.js API routes / route handlers
+### Next.js API routes
 
+#### TypeScript
 ```ts
 import { auth, AuthError } from "@/lib/auth";
 
@@ -182,50 +193,48 @@ export async function GET(request: Request) {
     const user = await auth.authenticate(request.headers.get("authorization"));
     return Response.json(user);
   } catch (err) {
-    const e =
-      err instanceof AuthError
-        ? err
-        : new AuthError("Unauthorized", "UNAUTHORIZED");
-    return Response.json(
-      { error: e.code, message: e.message },
-      { status: e.statusCode },
-    );
+    const e = err instanceof AuthError ? err : new AuthError("Unauthorized", "UNAUTHORIZED");
+    return Response.json({ error: e.code, message: e.message }, { status: e.statusCode });
   }
 }
 ```
 
-### Anything else (Koa, Hapi, raw `http`, a cron job, a CLI)
+#### JavaScript
+```js
+const { auth, AuthError } = require("@/lib/auth");
 
-```ts
-const user = await auth.authenticate(someHeaderValueFromWherever);
+export async function GET(request) {
+  try {
+    const user = await auth.authenticate(request.headers.get("authorization"));
+    return Response.json(user);
+  } catch (err) {
+    const e = err instanceof AuthError ? err : new AuthError("Unauthorized", "UNAUTHORIZED");
+    return Response.json({ error: e.code, message: e.message }, { status: e.statusCode });
+  }
+}
 ```
-
-Same call, same return shape, same errors — every time.
 
 ## 6. What you get back on a valid token
 
 ```ts
-{
-  id: string;              // Supabase user id (sub claim)
+// TypeScript interface
+interface SupabaseUser {
+  id: string;
   email?: string;
-  role?: string;             // top-level 'role' claim, usually 'authenticated'
-  appMetadata: object;      // includes provider, and any custom app_metadata.role etc.
-  userMetadata: object;     // Google profile data (name, avatar_url, etc.)
-  provider?: string;         // 'google'
+  role?: string;
+  appMetadata: object;
+  userMetadata: object;
+  provider?: string;
   aud: string;
   exp: number;
-  raw: object;                // full decoded JWT payload, for anything not surfaced above
+  raw: object;
 }
 ```
 
 ## 7. Role-based access
 
-Supabase Auth has no built-in roles, so this package reads
-`app_metadata.role` (falling back to the top-level `role` claim). Set
-custom roles per user via the Supabase Admin API or a Postgres trigger
-that writes into `app_metadata`, then check with:
-
 ```ts
+// Check roles
 auth.requireRole(user, ["admin", "support"]); // throws AuthError if it doesn't match
 ```
 
@@ -233,5 +242,3 @@ auth.requireRole(user, ["admin", "support"]); // throws AuthError if it doesn't 
 
 1. Change this repo, bump the version, tag it: `git tag v1.1.0 && git push --tags`.
 2. In each app: `npm install git+ssh://git@github.com/visora/supabase-auth-validator.git#v1.1.0`.
-
-Apps upgrade on their own schedule since each pins an explicit tag.
