@@ -2,20 +2,21 @@
   "name": "@visora/supabase-auth-validator",
   "version": "1.0.0",
   "description": "Centralized Supabase (Google OAuth) JWT validation core for all company backend apps.",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/index.cjs"
     }
   },
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "bun build ./src/index.ts --outdir ./dist --target node && bunx tsc --emitDeclarationOnly",
+    "build": "bun build ./src/index.ts --outdir ./dist --target node --format esm && bun build ./src/index.ts --outfile ./dist/index.cjs --target node --format cjs && bunx tsc --emitDeclarationOnly",
     "prepare": "bun run build"
   },
   "keywords": [
@@ -25,6 +26,7 @@
     "google-oauth"
   ],
   "private": true,
+  "type": "module",
   "dependencies": {
     "jose": "^5.9.6"
   },

@@ -50,7 +50,7 @@ export function createVerifier(config: SupabaseAuthConfig): VerifyFn {
           issuer,
           audience,
           clockTolerance,
-          algorithms: ["RS256"],
+          algorithms: ["RS256", "ES256"],
         });
         payload = result.payload;
       }
