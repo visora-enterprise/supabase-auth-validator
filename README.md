@@ -11,7 +11,7 @@ your frontend already sends in the `Authorization: Bearer <token>` header.
 ## 1. Install it in any app
 
 ```bash
-npm install git+ssh://git@github.com/visora-enterprise/supabase-auth-validator.git#v1.0.0
+npm install git+ssh://git@github.com/visora-enterprise/supabase-auth-validator.git#v1.0.1
 ```
 
 ## 2. Configure per app
