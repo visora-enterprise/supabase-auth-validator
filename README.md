@@ -14,8 +14,6 @@ your frontend already sends in the `Authorization: Bearer <token>` header.
 npm install git+ssh://git@github.com/visora-enterprise/supabase-auth-validator.git#v1.0.0
 ```
 
-`npm install` builds `dist/` automatically via the `prepare` script.
-
 ## 2. Configure per app
 
 ### TypeScript
